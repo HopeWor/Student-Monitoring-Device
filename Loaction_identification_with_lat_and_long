@@ -1,0 +1,28 @@
+#include <TinyGPS++.h>
+#include <SoftwareSerial.h>
+
+static const int rxPin = 9, txPin = 8;
+static const uint32_t gpsBaud = 9600;
+
+// The TinyGPS++ object
+TinyGPSPlus gps;
+
+// The serial connection to the GPS device
+SoftwareSerial GPS(rxPin, txPin);
+
+void setup(){
+  Serial.begin(9600);
+  GPS.begin(gpsBaud);
+}
+
+void loop(){
+  while (GPS.available() > 0){
+    gps.encode(GPS.read());
+    if (gps.location.isUpdated()){
+      Serial.print("Latitude= "); 
+      Serial.print(gps.location.lat(), 6);
+      Serial.print(" Longitude= "); 
+      Serial.println(gps.location.lng(), 6);
+    }
+  }
+}
