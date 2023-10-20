@@ -1,0 +1,168 @@
+#include <SoftwareSerial.h>
+#include <AltSoftSerial.h>
+#include <TinyGPS++.h>
+const String phone = "+91XXXXXXXXXX";
+#define rxPin 2
+#define txPin 3
+SoftwareSerial SIM900(rxPin,txPin);
+AltSoftSerial neogps;
+TinyGPSPlus gps;
+
+boolean alert_once=true;
+boolean mul_sms=false;
+unsigned long premillis=0;
+unsigned long int presecs = 0; 
+unsigned long int cursecs = 0; 
+unsigned long curMillis = 0; 
+int secs = 0; 
+int pmints = 0; 
+int mints = 0; 
+int interval= 1 ; 
+const float max= 90;
+float initial 1= 16.486286117845303;
+float initial 2=80.69028848322851;
+//Enter the school or location lat and long values
+float lat, lon;
+void left();
+void arrival();
+void getGps(float& lat, float& lon);
+void setup()
+{
+  Serial.begin(9600);
+  SIM900.begin(9600);
+  neogps.begin(9600);
+  SIM900.println("AT"); 
+  delay(1000);
+  SIM900.println("ATE1"); 
+  delay(1000);
+  SIM900.println("AT+CPIN?"); 
+  delay(1000);
+  SIM900.println("AT+CMGF=1"); 
+  delay(1000);
+  SIM900.println("AT+CNMI=1,1,0,0,0"); 
+  delay(1000);
+}
+void loop()
+{
+  getGps(lat, lon);
+  float dis = Distance(latitude, longitude, initialLatitude, initialLongitude);
+  Serial.print("Latitude= "); Serial.println(lat, 6);
+  Serial.print("Lngitude= "); Serial.println(lon, 6);
+  Serial.print("initialLatitude= "); Serial.println(initial1, 6);
+  Serial.print("initialLongitude= "); Serial.println(initial2, 6);
+  Serial.print("current Distance= "); Serial.println(distance);
+  if(dis > max) {
+    mul_sms = true;
+    if(alert_once == true){
+      left();
+      alert_once = false;
+    }
+  }
+  else if(dis <= max) {
+    mul_sms = true;
+    //------------------------------------------
+    if(alert_once == true){
+      arrival();
+      alert_once = false;
+      
+    }
+  }
+  else{
+    alert_once = true;
+    mul_sms = false;
+  }
+if ( mul_sms = true)
+  {
+       curMillis = millis();
+       cursecs = curMillis / 1000; 
+       if ((unsigned long)(cursecs - presecs) >= interval) {
+       secs = secs + 1; 
+
+       if ( secs >= 28800000)
+       {
+        left();
+        mul_sms = false;
+        secs = 0;
+       }
+    }
+  }
+  while(SIM900.available()){
+    Serial.println(SIM900.readString());
+  }
+  while(Serial.available())  {
+    SIM900.println(Serial.readString());
+  }
+}
+float getDistance(float a, float b, float c, float d) {
+  float D=0;
+  float d2=0;
+  float la=0;
+  float lo=0;
+  la  = radians(c-a);
+  a = radians(a)
+  c= radians(c);
+  lo = radians(d-b);
+  D = (sin(la/2.0)*sin(la/2.0));
+  d2 = cos(a);
+  d2*=cos(c);
+  d2*=sin(lo/2.0);
+  d2*=sin(lo/2.0);
+  D +=d2;
+  D=(2*atan2(sqrt(D),sqrt(1.0-D)));
+  D*=6371000.0; //Converting to meters
+  return D;
+}
+void getGps(float& lat, float& lon)
+{
+  boolean newData = false;
+  for (unsigned long start = millis(); millis() - start < 2000;){
+    while (neogps.available()){
+      if (gps.encode(neogps.read())){
+        newData = true;
+        break;
+      }
+    }
+  }
+  
+  if (newData) 
+  {
+    latitude = gps.location.lat();
+    longitude = gps.location.lng();
+    newData = false;
+  }
+  else {
+    Serial.println("No GPS data is available");
+    lat= 0;
+    lon = 0;
+  }
+}
+
+void left()
+{
+  String sms_data;
+  sms_data = "Student has left the school";
+  SIM900.print("AT+CMGF=1\r");
+  delay(1000);
+  SIM900.print("AT+CMGS=\""+PHONE+"\"\r");
+  delay(1000);
+  SIM900.print(sms_data);
+  delay(100);
+  SIM900.write(0x1A); 
+  delay(1000);
+  Serial.println("SMS Sent Successfully.");
+}
+void arrival()
+{
+  String sms_data;
+  sms_data = "Student arrived to school";
+  SIM900.print("AT+CMGF=1\r");
+  delay(1000);
+  SIM900.print("AT+CMGS=\""+PHONE+"\"\r");
+  delay(1000);
+  SIM900.print(sms_data);
+  delay(100);
+  SIM900.write(0x1A); 
+  delay(1000);
+  Serial.println("SMS Sent Successfully.");
+  
+}
